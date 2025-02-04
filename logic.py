@@ -1,13 +1,15 @@
-from pyexcel_ods3 import get_data, save_data
+import openpyxl as op
+from openpyxl.styles import NamedStyle, Font
 from datetime import datetime
 import csv
 
 #For testing for now
 ods_filename = "test.ods"
+xlsx_filename = "test.xlsx"
 
 def check_for_overview_sheet(filename):
     """
-    Checks if the given ODS file contains a sheet with a certain name.
+    Checks if the given xlsx file contains a sheet with a certain name.
     Make changes to the function to adapt it to your own usage.
     The file needs to be within the same folder as the script.
     
@@ -18,8 +20,8 @@ def check_for_overview_sheet(filename):
         True if the specified sheet exists, False otherwise.
     """
     try:
-        doc = get_data(filename)
-        return "Oversikt" in doc
+        doc = op.load_workbook(filename)
+        return "Oversikt" in doc.sheetnames
 
     except Exception as e:
         print(f"Error loading document: {e}")
@@ -47,13 +49,12 @@ def filter_csv(filename):
             if row["Beløp ut"]:
                 # Remove the - from the value and convert to a float
                 amount = float(row["Beløp ut"].replace("-", ""))
-            
             # Check if there is a value in "Beløp inn" for converting to float
-            if row["Beløp inn"]:
+            elif row["Beløp inn"]:
                 amount = float(row["Beløp inn"])
-
-            #Check for empty rows
-            if not any(row[key] for key in row):
+            else:
+                #If there is no Amount out or in, then there is no more lines to process.
+                #Cuts out the extra information in my particular CSV
                 break
 
             #Convert the date into a datetime obj
@@ -88,9 +89,9 @@ def process_transactions(transactions):
     #For now, add it to "Annet" on category and "Test" for comment to see if it works
     new_transactions = []
     for entry in transactions:
-        formatted_date = f"{entry["Dato"].day}.{entry["Dato"].month}"
+        #formatted_date = f"{entry["Dato"].day}.{entry["Dato"].month}"
         new_entry = {
-            "Dato": formatted_date,
+            "Dato": entry["Dato"],
             "Beløp": entry["Beløp"],
             "Beskrivelse": "Test",
             "Kategori": "Annet"
@@ -101,7 +102,7 @@ def process_transactions(transactions):
 
 def save_document(transactions):
     """
-    Takes in a list of transactions with Date, Amount, Comment and Category to append to a ODS document
+    Takes in a list of transactions with Date, Amount, Comment and Category to append to a xlsx file
     
     Arguments:
         transactions: Needs to be a list of dictionaries with Date, Amount, Comment and Category - Use process_transactions()
@@ -109,20 +110,36 @@ def save_document(transactions):
     Returns:
         Nothing - The function will try to append the transactions into the document and try to save it.
     """
+    try:
+        workbook = op.load_workbook(xlsx_filename)
+    except FileNotFoundError:
+        print("File not found")
+        return
+    
+    # Check if there is a style named "date_style" in the file already
+    if "date_style" not in workbook.named_styles:
+        # Add the style to get the desired format and font
+        date_style = NamedStyle(name="date_style", number_format="DD.MM.YYYY")
+        date_style.font = Font(name="Arial")
+        workbook.add_named_style(date_style)
 
     for entry in transactions:
         category = entry["Kategori"]
         try:
             #Get data from the corresponding category sheet.
-            existing_data = get_data(ods_filename)[category]
+            worksheet = workbook[category]
         except KeyError:
-            continue
+            worksheet = workbook.create_sheet(title=category)
 
-        existing_data.append([entry["Dato"], entry["Beløp"], entry["Beskrivelse"]])
+        #Find the next available row to append data
+        next_row = worksheet.max_row + 1
 
-        sheet_data = {category: existing_data}
-
-        save_data(ods_filename, sheet_name=category, data=sheet_data)
+        date_cell = worksheet.cell(row=next_row, column=1, value=entry["Dato"])
+        date_cell.style = "date_style"
+        worksheet.cell(row=next_row, column=2, value=entry["Beløp"])
+        worksheet.cell(row=next_row, column=3, value=entry["Beskrivelse"])
+    
+    workbook.save(xlsx_filename)
 
 # Test to see if it works
 csv_filename = "transaksjoner_test.csv"
