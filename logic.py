@@ -34,7 +34,7 @@ def filter_csv(filename):
     """
 
     filtered_transactions = []
-    
+
     with open(filename, newline="",) as f:
         reader = csv.DictReader(f, delimiter=";")
         for row in reader:
@@ -50,7 +50,7 @@ def filter_csv(filename):
 
             # Write the transaction to a dictionary object to store in the list
             transaction = {
-                "Dato": row["Utført dato"],
+                "Dato": row["Utført dato"][0:5],
                 "Beskrivelse": row["Beskrivelse"],
                 "Beløp inn": row["Beløp inn"],
                 "Beløp ut": row["Beløp ut"]
