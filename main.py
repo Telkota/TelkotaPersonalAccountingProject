@@ -1,7 +1,5 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
-import openpyxl
-import csv
 from logic import *
 
 def open_file_dialog(filetype):

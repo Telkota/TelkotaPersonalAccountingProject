@@ -36,7 +36,9 @@ def create_new_doc(file_name):
     Returns:
         Nothing - A helper function to set up a new document
     """
-
+    #Remove any extensions
+    basename = file_name.split(".")[0]
+    file_name_ext = f"{basename}.xlsx"
     # List of all the sheets except Overview which will be handled separately
     sheets = [ "Inntekter", "Sparing", "Fond", "PC Relatert", "Elektronikk", 
               "Spill", "Klær", "Kjøretøy", "Prosjekter", "Husholdning", "TakeAway", "Mat", 
@@ -123,7 +125,8 @@ def create_new_doc(file_name):
         sheet["C1"] = "Beskrivelse:"
 
     # Save the document
-    workbook.save(f"{file_name}.xlsx")
+    print("Saving the document as ", file_name_ext)
+    workbook.save(file_name_ext)
 
     return
     
@@ -248,3 +251,7 @@ def save_document(transactions):
 #klargjort = process_transactions(filtrert)
 #save_document(klargjort)
 #create_new_doc("new_test")
+create_new_doc("example")
+create_new_doc("example.xlsx")
+create_new_doc("example.test")
+create_new_doc("example.test.xlsx")
