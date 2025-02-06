@@ -18,15 +18,10 @@ def create_initial_popup():
         xlsx_path = xlsx_entry.get() if xlsx_entry.get() else None
         csv_path = csv_entry.get() if csv_entry.get() else None
 
-        print(xlsx_path, csv_path, new_xlsx_path)
-
         if xlsx_path and csv_path:
-            print("xlsx and csv paths found - continuing")
             initial_popup.destroy()
             create_main_gui()
         elif new_xlsx_path and csv_path:
-            print(new_xlsx_path)
-            print("New xlsx detected - continuing")
             create_new_doc(new_xlsx_path)
             xlsx_path = new_xlsx_path
             initial_popup.destroy()
@@ -92,7 +87,6 @@ def create_main_gui():
         if selected_item:
             item = pending_tree.item(selected_item)
             values = item["values"]
-            
             # Get the user comment and category
             comment = comment_entry.get("1.0", tk.END).strip()
             category = category_var.get()
@@ -107,7 +101,7 @@ def create_main_gui():
                 amount = -abs(float(amount))    # Flipped to negative
             
             # Add the item to the completed tree
-            completed_tree.insert("", "end", values=(values[0], amount, category, comment))
+            completed_tree.insert("", "end", values=(values[0], amount, category, comment, values[3]))
             # Remove the item from the entry field
             pending_tree.delete(selected_item)
 
@@ -118,6 +112,10 @@ def create_main_gui():
             # Check if all transactions are completed
             if not pending_tree.get_children():
                 submit_button.configure(state="normal")
+
+            # Select the first item by default
+            if pending_tree.get_children():
+                pending_tree.selection_set(pending_tree.get_children()[0])
     
     def add_category():
         new_category = simpledialog.askstring("New Category", "Enter the new category name:")
@@ -135,13 +133,13 @@ def create_main_gui():
             values = completed_tree.item(item)["values"]
             transaction = {
                 "Dato": values[4],
-                "Beløp": values[1],
+                "Beløp": float(values[1]),
                 "Kategori": values[2],
                 "Beskrivelse": values[3]
             }
             transactions.append(transaction)
         
-        save_document(xlsx_path, transactions)
+        save_document(transactions, xlsx_path)
         messagebox.showinfo("Success", "All transactions has been saved successfully")
         os.startfile(xlsx_path)
         exit()      # Exit after the user has clicked ok

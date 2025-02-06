@@ -1,5 +1,6 @@
 import openpyxl as op
 from openpyxl.styles import NamedStyle, Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 from datetime import datetime
 import csv
 
@@ -52,10 +53,10 @@ def create_new_doc(file_name):
 
     # Define named styles for the overview page
     center_aligned = Alignment(horizontal="center", vertical="center")
-    total_font = Font(name="Arial", size=10)
-    title_style = NamedStyle(name="title_style", font=Font(name="Arial", size=20, bold=True))
-    subtitle_style = NamedStyle(name="subtitle_style", font=Font(name="Arial", size=12, bold=True, italic=True))
-    sheet_name_style = NamedStyle(name="sheet_name_style", font=Font(name="Arial", size=10, bold=True, italic=True))
+    total_font = Font(name="Calibri", size=10)
+    title_style = NamedStyle(name="title_style", font=Font(name="Calibri", size=20, bold=True))
+    subtitle_style = NamedStyle(name="subtitle_style", font=Font(name="Calibri", size=12, bold=True, italic=True))
+    sheet_name_style = NamedStyle(name="sheet_name_style", font=Font(name="Calibri", size=11, bold=True, italic=True))
     total_positive = NamedStyle(name="total_positive", font=total_font, fill=PatternFill(start_color="00a933", end_color="00a933", fill_type="solid"))
     total_fond = NamedStyle(name="total_fond", font=total_font, fill=PatternFill(start_color="2a6099", end_color="2a6099", fill_type="solid"))
     total_negative = NamedStyle(name="total_negative", font=total_font, fill=PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid"))
@@ -102,6 +103,7 @@ def create_new_doc(file_name):
         # set the formula to sum up for the total
         b_cell = f"B{next_row}"
         overview_sheet[b_cell] = f"=SUM('{name}'!B:B)"
+        overview_sheet[b_cell].number_format = "# ##0,00"
 
         # Styling for the total cells
         if name == "Inntekter":
@@ -123,6 +125,12 @@ def create_new_doc(file_name):
         sheet["A1"] = "Dato:"
         sheet["B1"] = "Beløp:"
         sheet["C1"] = "Beskrivelse:"
+        sheet.column_dimensions["A"].width = 14
+        sheet.column_dimensions["B"].width = 14
+        for cell in sheet["A"]:
+            cell.number_format = "DD.MM"
+        for cell in sheet["B"]:
+            cell.number_format = "# ##0,00"
 
     # Save the document
     print("Saving the document as ", file_name_ext)
@@ -142,13 +150,11 @@ def filter_csv(filename):
     Returns:
         A list of dictionary objects containing the information within the CSV.
     """
-    print(filename)
     filtered_transactions = []
 
     with open(filename, newline="",) as f:
         reader = csv.DictReader(f, delimiter=";")
         for row in reader:
-            #print(row)
             # Check if there is a value in "Beløp ut" for converting to float
             if row["Beløp ut"]:
                 # Remove the - from the value and convert to a float
@@ -177,7 +183,6 @@ def filter_csv(filename):
 
             filtered_transactions.append(transaction)
     sorted_transactions = sorted(filtered_transactions, key=lambda x: x["Dato"])    
-    print(sorted_transactions[:1])
     return sorted_transactions
 
 def get_excel_categories(filename):
@@ -221,6 +226,16 @@ def add_new_category(filename, category):
         new_sheet["A1"] = "Dato:"
         new_sheet["B1"] = "Beløp:"
         new_sheet["C1"] = "Beskrivelse:"
+        overview_sheet = workbook["Oversikt"]
+        next_row = overview_sheet.max_row + 1
+        overview_sheet[f"A{next_row}"] = category
+        overview_sheet[f"A{next_row}"].style = "sheet_name_style"
+        overview_sheet[f"A{next_row}"].alignment = Alignment(horizontal="center", vertical="center")
+
+        overview_sheet[f"B{next_row}"] = f"=SUM('{category}'!B:B)"
+        overview_sheet[f"B{next_row}"].style = "total_negative"
+        overview_sheet[f"B{next_row}"].alignment = Alignment(horizontal="center", vertical="center")
+
         workbook.save(filename)
 
     return
@@ -247,7 +262,6 @@ def process_transactions(transactions):
             "Kategori": "Annet"
         }
         new_transactions.append(new_entry)
-    print(new_transactions[:2])
     return new_transactions
 
 def save_document(transactions, filename):
@@ -268,9 +282,9 @@ def save_document(transactions, filename):
     
     # Check if there is a style named "date_style" in the file already
     if "date_style" not in workbook.named_styles:
-        # Add the style to get the desired format and font
+        # Add the style to get the desired format and font for dates
         date_style = NamedStyle(name="date_style", number_format="DD.MM.YYYY")
-        date_style.font = Font(name="Arial")
+        date_style.font = Font(name="Calibri")
         workbook.add_named_style(date_style)
 
     for entry in transactions:
@@ -283,10 +297,12 @@ def save_document(transactions, filename):
 
         #Find the next available row to append data
         next_row = worksheet.max_row + 1
-
-        date_cell = worksheet.cell(row=next_row, column=1, value=entry["Dato"])
+        
+        date_obj = datetime.strptime(entry["Dato"], "%Y-%m-%d %H:%M:%S")
+        date_cell = worksheet.cell(row=next_row, column=1, value=date_obj)
         date_cell.style = "date_style"
-        worksheet.cell(row=next_row, column=2, value=entry["Beløp"])
+        number_cell = worksheet.cell(row=next_row, column=2, value=entry["Beløp"])
+        number_cell.number_format = "# ###,00"          # Unfortunately doesn't work as I expect it to
         worksheet.cell(row=next_row, column=3, value=entry["Beskrivelse"])
     
     workbook.save(filename)
