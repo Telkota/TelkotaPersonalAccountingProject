@@ -142,7 +142,7 @@ def filter_csv(filename):
     Returns:
         A list of dictionary objects containing the information within the CSV.
     """
-
+    print(filename)
     filtered_transactions = []
 
     with open(filename, newline="",) as f:
@@ -180,9 +180,55 @@ def filter_csv(filename):
     print(sorted_transactions[:1])
     return sorted_transactions
 
+def get_excel_categories(filename):
+    """
+    Takes in an excel file and fetches the names of all the sheets (except the overview sheet).
+    
+    Arguments:
+        filename: filepath to an excel file
+        
+    Returns:
+        List of strings containing the names of the different sheets
+    """
+    # First entry of the category dropdown menu should be a "Choose category" option
+    categories = ["Velg Kategori"]
+    workbook = op.load_workbook(filename=filename, read_only=True)
+
+    # Loop over the different sheets in the excel file - Exclude the overview sheet.
+    for sheet in workbook.sheetnames:
+        if sheet != "Oversikt": 
+            categories.append(sheet)
+
+    return categories
+
+def add_new_category(filename, category):
+    """
+    Takes in an excel file and category to be able to add a new sheet to an existing excel document.
+    
+    Arguments:
+        filename: filepath to an excel file.
+        category: string containing a name for a new category
+        
+    Returns:
+        Nothing
+    """
+    workbook = op.load_workbook(filename=filename)
+    # Convert all the sheet names into lower case for comparison
+    sheetnames_lower = [sheet.lower() for sheet in workbook.sheetnames]
+
+    if category.lower() not in sheetnames_lower:
+        new_sheet = workbook.create_sheet(title=category)
+        new_sheet["A1"] = "Dato:"
+        new_sheet["B1"] = "Beløp:"
+        new_sheet["C1"] = "Beskrivelse:"
+        workbook.save(filename)
+
+    return
+
 def process_transactions(transactions):
     """
-    Takes in a list of transactions and let's the user add a category and comment to the transaction.
+    Test function:
+        Takes in a list of transactions and let's the user add a category and comment to the transaction.
     
     Arguments:
         transactions: Should be a list of dictionaries returned from the function 'filter_csv'
@@ -204,7 +250,7 @@ def process_transactions(transactions):
     print(new_transactions[:2])
     return new_transactions
 
-def save_document(transactions):
+def save_document(transactions, filename):
     """
     Takes in a list of transactions with Date, Amount, Comment and Category to append to a xlsx file
     
@@ -215,7 +261,7 @@ def save_document(transactions):
         Nothing - The function will try to append the transactions into the document and try to save it.
     """
     try:
-        workbook = op.load_workbook(xlsx_filename)
+        workbook = op.load_workbook(filename)
     except FileNotFoundError:
         print("File not found")
         return
@@ -243,7 +289,7 @@ def save_document(transactions):
         worksheet.cell(row=next_row, column=2, value=entry["Beløp"])
         worksheet.cell(row=next_row, column=3, value=entry["Beskrivelse"])
     
-    workbook.save(xlsx_filename)
+    workbook.save(filename)
 
 # Test to see if it works
 #csv_filename = "transaksjoner_test.csv"
@@ -251,7 +297,7 @@ def save_document(transactions):
 #klargjort = process_transactions(filtrert)
 #save_document(klargjort)
 #create_new_doc("new_test")
-create_new_doc("example")
-create_new_doc("example.xlsx")
-create_new_doc("example.test")
-create_new_doc("example.test.xlsx")
+#create_new_doc("example")
+#create_new_doc("example.xlsx")
+#create_new_doc("example.test")
+#create_new_doc("example.test.xlsx")
