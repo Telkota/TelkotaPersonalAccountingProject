@@ -92,6 +92,7 @@ def create_main_gui():
         if selected_item:
             item = pending_tree.item(selected_item)
             values = item["values"]
+            
             # Get the user comment and category
             comment = comment_entry.get("1.0", tk.END).strip()
             category = category_var.get()
@@ -100,8 +101,13 @@ def create_main_gui():
                 messagebox.showerror("Error", "Please add a comment and select a category")
                 return
             
+            # Edge case for savings
+            amount = values[1]
+            if category.lower() == "sparing" and comment.startswith("-"):
+                amount = -abs(float(amount))    # Flipped to negative
+            
             # Add the item to the completed tree
-            completed_tree.insert("", "end", values=(values[0], values[1], category, comment))
+            completed_tree.insert("", "end", values=(values[0], amount, category, comment))
             # Remove the item from the entry field
             pending_tree.delete(selected_item)
 
@@ -143,7 +149,7 @@ def create_main_gui():
     #Main GUI
     main_gui = tk.Tk()
     main_gui.title("Personal Accounting")
-    main_gui.geometry("800x900")
+    main_gui.geometry("800x950")
     main_gui.configure(bg="#D3D3D3")
 
     # Grid configuration for center-alignment
@@ -160,10 +166,15 @@ def create_main_gui():
     main_gui.grid_columnconfigure(2, weight=1)
     main_gui.grid_columnconfigure(3, weight=1)
 
+    # Style for treeview with gridlines
+    style = ttk.Style()
+    style.configure("Treeview", rowheight=25)
+    style.map("Treeview", background=[("selected", "#347083")], foreground=[("selected", "white")])
+    style.configure("Treeview.Heading", borderwidth=1, relief="solid")
 
     # Treeview for pending transactions
     tk.Label(main_gui, text="Pending", font=("Arial", 14), bg="#D3D3D3").grid(row=0, column=0, columnspan=3, sticky="nsew")
-    pending_tree = ttk.Treeview(main_gui, columns=("Dato", "Beløp", "Beskrivelse"), show="headings")
+    pending_tree = ttk.Treeview(main_gui, columns=("Dato", "Beløp", "Beskrivelse"), show="headings", style="Treeview")
     pending_tree.heading("Dato", text="Dato")
     pending_tree.heading("Beløp", text="Beløp")
     pending_tree.heading("Beskrivelse", text="Beskrivelse")
@@ -178,10 +189,14 @@ def create_main_gui():
         formatted_date = date_obj.strftime("%d.%m")
         values = (formatted_date, item["Beløp"], item["Beskrivelse"], date_obj)
         pending_tree.insert("", "end", values=values)
+    
+    # Select the first item by default
+    if pending_tree.get_children():
+        pending_tree.selection_set(pending_tree.get_children()[0])
 
     # Treeview for completed transactions
     tk.Label(main_gui, text="Completed", font=("Arial", 14), bg="#D3D3D3").grid(row=2, column=0, columnspan=3, sticky="nsew")
-    completed_tree = ttk.Treeview(main_gui, columns=("Dato", "Beløp", "Kategori", "Kommentar"), show="headings")
+    completed_tree = ttk.Treeview(main_gui, columns=("Dato", "Beløp", "Kategori", "Kommentar"), show="headings", style="Treeview")
     completed_tree.heading("Dato", text="Dato")
     completed_tree.heading("Beløp", text="Beløp")
     completed_tree.heading("Kategori", text="Kategori")
@@ -193,12 +208,12 @@ def create_main_gui():
     completed_tree.grid(row=3, column=0, columnspan=3, padx=40, pady=20, sticky="nsew")
 
     # Comment entry field
-    tk.Label(main_gui, text="Kommentar:", font=("Arial", 12), bg="#D3D3D3").grid(row=4, column=0, columnspan=3, pady=5, sticky="nsew")
+    tk.Label(main_gui, text="Comment:", font=("Arial", 12), bg="#D3D3D3").grid(row=4, column=0, columnspan=3, pady=5, sticky="nsew")
     comment_entry = tk.Text(main_gui, width=40, height=4)
     comment_entry.grid(row=5, column=0, columnspan=2,padx=40, pady=5, sticky="nsew")
 
     # Category dropdown menu
-    tk.Label(main_gui, text="Kategori:", font=("Arial", 12), bg="#D3D3D3").grid(row=6, column=0, pady=5, sticky="nsew")
+    tk.Label(main_gui, text="Category:", font=("Arial", 12), bg="#D3D3D3").grid(row=6, column=0, pady=5, sticky="nsew")
     categories = get_excel_categories(xlsx_path)
     category_var = tk.StringVar(value="Velg Kategori")
     category_menu = ttk.Combobox(main_gui, textvariable=category_var, values=categories)
@@ -222,4 +237,5 @@ xlsx_path = ""
 csv_path = ""
 new_xlsx_path = ""
 
-create_initial_popup()
+if __name__ == "__main__":
+    create_initial_popup()
