@@ -161,3 +161,4 @@ cython_debug/
 transaksjoner_test.csv
 test - Copy.ods
 *.tmp
+PersonalAccounting.bat
